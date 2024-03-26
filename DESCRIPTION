@@ -3,11 +3,18 @@ Title: Set Hook on Garbage Collection
 Version: 0.0.0.9000
 Authors@R: 
     person("Antoine", "Fabri", , "antoine.fabri@gmail.com", role = c("aut", "cre"))
-Description: Set hook on garbage collection
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+Description: The 'recycle' function lets you call a function of your choice whenever
+  garbacge collection is called, with a minimum delta in seconds to limit the frequency.
+  This can be done in the current session or in another session in the background and
+  might be used for instance for periodic notifications, logs, diagnostics or 
+  updates.
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
 URL: https://github.com/moodymudskipper/recycle
 BugReports: https://github.com/moodymudskipper/recycle/issues
+Imports: 
+    callr
+Suggests: 
+    pryr

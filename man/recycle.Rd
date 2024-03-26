@@ -4,10 +4,20 @@
 \alias{recycle}
 \title{Set a hook on garbage collection}
 \usage{
-recycle(f, delta = 1)
+recycle(f, delta = 1, args = list(), background = FALSE, ...)
 }
 \arguments{
-\item{f}{An argument-less function to call whenever garbage collection is triggered}
+\item{f}{The hook, an argument-less function to call whenever garbage collection is triggered}
+
+\item{delta}{Minimal number of seconds between calls to the hook}
+
+\item{args}{Arguments to \code{f}, useful mostly if \code{background} is \code{TRUE}}
+
+\item{background}{Whether to run in the background, i.e. run in a separate session and
+not wait for the output, uses \code{callr::r_bg()}}
+
+\item{...}{Additional arguments passed to \code{callr::r_bg()}, irrelevant if
+\code{background} is \code{FALSE}}
 }
 \description{
 Set a hook on garbage collection
