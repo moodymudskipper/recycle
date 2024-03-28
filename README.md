@@ -33,10 +33,10 @@ remotes::install_github("moodymudskipper/recycle")
 
 ``` r
 library(recycle)
-log <- function() message(sprintf("This R session currently takes %s", capture.output(pryr::mem_used())))
+log_mem <- function() message(sprintf("This R session currently takes %s", capture.output(pryr::mem_used())))
 
 # set the hook and triggers it a first time, use a 1 sec delta by default
-recycle(log = new_cycle(log))
+recycle(log = new_cycle(log_mem))
 #> This R session currently takes 48.8 MB
 
 # doesn't trigger the hook, too soon!
@@ -74,6 +74,10 @@ x <- 1 # the progress bar is still going on
 x
 ```
 
-We can remove a hook by setting it o `NULL`, e.g. `recycle(log = NULL)`.
-If you call `recycle::recycle(new_hook)` your new hook will replace the
-old, if you call `recycle::recycle(NULL)` the old hook will be removed.
+We can remove a hook by setting it o `NULL`, e.g. `recycle(log = NULL)`,
+or remove all hooks altogether by calling `uncycle()`
+
+## dependencies
+
+The package has few dependencies, including recursive dependencies these
+are : \* rlang \* callr \* processx \* ps \* R6
