@@ -32,10 +32,11 @@ remotes::install_github("moodymudskipper/recycle")
 ## Example
 
 ``` r
+library(recycle)
 log <- function() message(sprintf("This R session currently takes %s", capture.output(pryr::mem_used())))
 
-# set the hook and triggers it a first time, use a 1 sec delta
-recycle::recycle(log) # delta = 1 is the default
+# set the hook and triggers it a first time, use a 1 sec delta by default
+recycle(log = new_cycle(log))
 #> This R session currently takes 48.8 MB
 
 # doesn't trigger the hook, too soon!
@@ -43,25 +44,21 @@ invisible(gc())
 
 Sys.sleep(2)
 
-some_object <- sample(1e6, 1e6)
+some_object <- sample(1e6)
 # triggers the hook again
 invisible(gc())
 #> This R session currently takes 53.1 MB
 ```
 
-We can also run the code in the background in another session by setting
-`background = TRUE`. Since it’s called in another session and we don’t
-wait for the output we cannot print to the console with this strategy so
-we’ll use another example.
+We can also run the code in the background in another session by using
+`new_cycle_bg()`.
 
 Let’s have a purposeless progress bar widget fill up on garbage
 collection.
 
-By definition a function run in parallel cannot print to the console,
-the following example shows a spinner for 3 sec on garbage collection.
-
 Run the following example in your session and you should see that your
-session is still active while the progress bar is running
+session is still active while the progress bar is running. Note how the
+previous hook is still active.
 
 ``` r
 fill_pb <- function() {
@@ -71,10 +68,12 @@ fill_pb <- function() {
     tcltk::setTkProgressBar(pb, i/100, sprintf("test (%d%% done)", i))
   }
 }
-recycle::recycle(fill_pb, background = TRUE)
+recycle::recycle(pb = new_cycle_bg(fill_pb))
+#> This R session currently takes 53.5 MB
 x <- 1 # the progress bar is still going on
 x
 ```
 
+We can remove a hook by setting it o `NULL`, e.g. `recycle(log = NULL)`.
 If you call `recycle::recycle(new_hook)` your new hook will replace the
 old, if you call `recycle::recycle(NULL)` the old hook will be removed.
