@@ -42,7 +42,15 @@ print.cycle <- function(x, ...) {
   if (is.null(x$last)) {
     header <- "Never run"
   } else {
-    header <- sprintf("Last run: %s, status: %s", x$last %||% "never", format(x$process))
+    if (x$bg) {
+      header <- sprintf(
+        "Last run: %s, %s",
+        x$last %||% "never",
+        sub("\n$", "", format(x$process))
+      )
+    } else {
+      header <- sprintf("Last run: %s", x$last %||% "never")
+    }
   }
 
   fun <- if (x$bg) "new_cycle_bg" else "new_cycle"

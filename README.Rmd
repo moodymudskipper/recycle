@@ -43,10 +43,10 @@ remotes::install_github("moodymudskipper/recycle")
 
 ```{r, eval = FALSE}
 library(recycle)
-log <- function() message(sprintf("This R session currently takes %s", capture.output(pryr::mem_used())))
+log_mem <- function() message(sprintf("This R session currently takes %s", capture.output(pryr::mem_used())))
 
 # set the hook and triggers it a first time, use a 1 sec delta by default
-recycle(log = new_cycle(log))
+recycle(log = new_cycle(log_mem))
 #> This R session currently takes 48.8 MB
 
 # doesn't trigger the hook, too soon!
