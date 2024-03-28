@@ -15,6 +15,10 @@ RoxygenNote: 7.3.1
 URL: https://github.com/moodymudskipper/recycle
 BugReports: https://github.com/moodymudskipper/recycle/issues
 Imports: 
-    callr
+    callr,
+    rlang
 Suggests: 
-    pryr
+    knitr,
+    pryr,
+    rmarkdown
+VignetteBuilder: knitr

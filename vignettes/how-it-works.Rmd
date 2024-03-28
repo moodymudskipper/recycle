@@ -1,0 +1,155 @@
+---
+title: "How it works"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{How it works}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Garbage collection
+
+Quotes from advanced R
+
+> GC automatically releases memory when an object is no longer used. It does this by tracking how many names point to each object, and when there are no names pointing to an object, it deletes that object.
+
+> R will automatically run garbage collection whenever it needs more space
+
+Garbage collection is triggered very often, and it happens
+in the middle of any R code running.
+
+We can run `gc()` to trigger it manually but it's rarely needed in practice,
+that's convenient for use for reproducibility though so we'll use it here.
+
+## `reg.finalizer()`
+
+`reg.finalizer()` is a magical function that allows you to run code whenever
+an environment is garbage collected.
+
+From `?reg.finalizer` :
+
+> The main purpose of this function is to allow objects that refer to external items (a temporary file, say) to perform cleanup actions when they are no longer referenced from within R.
+
+```{r}
+e <- new.env()
+reg.finalizer(e, function(e) message("hello!"))
+#> NULL
+
+# nothing happens
+invisible(gc())
+
+# but if we remove the env (and nothing else points to it)...
+rm(e)
+
+# then gc happens and the hook is triggered
+invisible(gc())
+#> hello!
+
+# only once!
+invisible(gc())
+```
+
+## What if...
+
+What if we create a new env in the reg.finalizer, and set a hook to finalize that
+one ?
+
+```{r}
+e1 <- new.env()
+reg.finalizer(e1, function(e) {
+  e2 <- new.env()
+  message("hello!")
+  reg.finalizer(e2, function(e) message("world!"))
+})
+
+rm(e1)
+invisible(gc())
+#> hello!
+
+invisible(gc())
+#> world!
+
+# nothing
+invisible(gc())
+```
+
+Nice, the first `gc()` creates the second environment, and it's collected with
+the second `gc()`, and then there's nothing to collect that would trigger a hook anymore.
+
+## Can we do this forever ?
+
+Can we have an environment finalizer always create an environment with a finalizer,
+and have a hook that will repeat on every GC ? Yes! And it doesn't take much code
+
+```{r}
+recycle_simple <- function(f) {
+  e <- new.env()
+  reg.finalizer(e, function(e) {
+    recycle_simple(f)
+    f()
+  })
+  gc() # necessary not to have GC itself interfer with our magic
+  invisible(NULL)
+}
+```
+
+* We create a function that creates an environment, and we set a
+finalizer on it
+* This finalizer will be called at the next GC once we get out of the function, 
+because nothing else will point to the env
+* Once fired, this finalizer creates a new similar environment, and the cycle continues
+
+It's a recursive function, but with delayed recursions.
+
+Let's try it :
+
+```{r}
+msg <- "hello!"
+recycle_simple(function() message(msg))
+
+invisible(gc())
+#> hello!
+
+invisible(gc())
+#> hello!
+
+msg <- "world!"
+invisible(gc())
+#> world!
+```
+
+## The actual code
+
+The actual code is a bit more complex because we want
+to be able for instance to :
+
+* Use a minimum time delta
+* Set several hooks
+* Override or remove a hook
+* Call a process in the background, in another session
+* Keep metadata about hooks
+
+The hooks and their metadata are stored in a global object `global$cycles`.
+
+The unexported function `set_hooks()` looks a lot like `recycle_simple()` above
+but the `finalizer()` is defined in {recycle}'s namespace so it has access
+to unexported objects. `finalizer()` loops on `global$cycles` and applies the
+hooks in sequence when they are applicable.
+
+Hooks defined with `new_cycle()` work just as the above while those defined
+with `new_cycle_bg()` are a bit different. For those we populate the hook's environment with the necessary objects and `callr::r_bg()` with `package = TRUE` to run
+the code in a new session with those objects available. We also set the 
+`stderr` and `stdout` arguments so the output of those background processes
+is redirected to the main output.
+
+Another global variable, `globals$init` is used to determine if `set_hooks()`
+should be called or if the infinite recursion in `finalizer()` should be
+interrupted.
+
