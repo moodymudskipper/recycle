@@ -81,10 +81,41 @@ abort_not_integerish <- function(x) {
   }
 }
 
-abort_not_function <- function(x) {
+abort_not_function <- function(x, null_ok = FALSE) {
   var <- as.character(substitute(x))
   if (!rlang::is_function(x)) {
-    msg <- sprintf("`%s` is not a function", var)
-    abort(c(msg, i = describe(x)), call = parent.frame())
+    if (!null_ok) {
+      msg <- sprintf("`%s` is not a function", var)
+      abort(c(msg, i = describe(x)), call = parent.frame())
+    } else if (!is.null(x)) {
+      msg <- sprintf("`%s` is not a function or NULL", var)
+      abort(c(msg, i = describe(x)), call = parent.frame())
+    }
   }
+}
+
+abort_wrong_cycles <- function(cycles) {
+  wrong_cycles <- Filter(function(x) !is.null(x) && !inherits(x, "cycle"), cycles)
+  if (!length(wrong_cycles)) return(invisible(NULL))
+  msg <- "`recycle()` takes only `NULL` or objects created by `new_cycle()` or `new_cycle_bg()`"
+  info1 <- sprintf(
+    "Args that are not cycles: %s",
+    toString(sprintf("`%s`", names(wrong_cycles)))
+  )
+  info2 <- "Did you mean to pass them to `new_cycle()` or `new_cycle_bg()`?"
+  abort(c(msg, x = info1, i = info2), call = parent.frame())
+}
+
+abort_not_same_env <- function(hook, trigger) {
+  same_env_or_irrelevant <-
+    is.null(trigger) || identical(environment(hook), environment(trigger))
+  if (same_env_or_irrelevant) return(invisible(NULL))
+  msg <- "`hook` and `trigger` must have the same environment"
+  info1 <- sprintf(
+    "`environment(hook)` is %s and `environment(trigger)` is %s",
+    format(environment(hook)),
+    format(environment(trigger))
+  )
+  info2 <- "Usually their enclosure is .GlobalEnv for both, or a namespace for both"
+  abort(c(msg, x = info1, i = info2), call = parent.frame())
 }
